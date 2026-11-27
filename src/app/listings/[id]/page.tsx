@@ -1,8 +1,9 @@
 import { Suspense } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, ShieldCheck, Sparkles, Trophy, User } from "lucide-react";
+import { ArrowLeft, MessageSquare, ShieldCheck, Sparkles, Trophy, User } from "lucide-react";
 import { getListingById } from "@/services/listing.service";
+import { startConversationAction } from "@/app/actions/messaging";
 import { formatPhpFromCentavos } from "@/lib/utils/currency";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -145,15 +146,20 @@ async function ListingDetailContent({
                 </div>
               </dl>
 
-              <div className="pt-2">
+              <div className="space-y-2 pt-2">
+                {listing.status === "ACTIVE" && (
+                  <form action={startConversationAction.bind(null, listing.id)}>
+                    <Button className="w-full gap-2" type="submit">
+                      <MessageSquare className="h-4 w-4" />
+                      Message Seller / Request Purchase
+                    </Button>
+                  </form>
+                )}
                 <Link href="/midmen" className="block">
-                  <Button className="w-full" variant="default">
+                  <Button className="w-full" variant="outline">
                     View Verified Midmen
                   </Button>
                 </Link>
-                <p className="mt-2 text-center text-xs text-muted-foreground">
-                  Direct messaging &amp; transaction rooms arrive in Phase 3–4.
-                </p>
               </div>
             </CardContent>
           </Card>
