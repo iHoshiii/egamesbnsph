@@ -60,6 +60,33 @@ enum ProposalStatus {
   EXPIRED
 }
 
+enum TransactionStatus {
+  MIDMAN_ASSIGNED
+  QUEUED
+  TERMS_PENDING
+  PAYMENT_PENDING
+  PAYMENT_SUBMITTED
+  PAYMENT_VERIFIED
+  FULFILLMENT_PENDING
+  COMPLETED
+  CANCELLED
+  DISPUTED
+}
+
+enum QueueStatus {
+  WAITING
+  IN_PROGRESS
+  COMPLETED
+  REMOVED
+}
+
+enum PaymentStatus {
+  PENDING
+  SUBMITTED
+  VERIFIED
+  REJECTED
+}
+
 model User {
   id        String   @id @db.Uuid
   email     String   @unique
@@ -76,6 +103,12 @@ model User {
   buyerProposals    TransactionProposal[] @relation("BuyerProposals")
   sellerProposals   TransactionProposal[] @relation("SellerProposals")
   proposedProposals TransactionProposal[] @relation("ProposedByUser")
+  buyerTransactions Transaction[]         @relation("BuyerTransactions")
+  sellerTransactions Transaction[]        @relation("SellerTransactions")
+  agreements        TransactionAgreement[]
+  payments          Payment[]
+  verifications     PaymentVerification[]
+  txEvents          TransactionEvent[]
 
   @@map("users")
 }
@@ -127,6 +160,8 @@ model MidmanProfile {
   socials        MidmanSocial[]
   paymentMethods MidmanPaymentMethod[]
   proposals      TransactionProposal[]
+  transactions   Transaction[]
+  queueItems     TransactionQueue[]
 
   @@index([verificationStatus, availabilityStatus])
   @@map("midman_profiles")
@@ -187,11 +222,12 @@ model Listing {
   createdAt        DateTime      @default(now()) @map("created_at") @db.Timestamptz
   updatedAt        DateTime      @updatedAt @map("updated_at") @db.Timestamptz
 
-  seller    User                  @relation(fields: [sellerId], references: [id], onDelete: Cascade)
-  category  ListingCategory       @relation(fields: [categoryId], references: [id])
-  media     ListingMedia[]
-  chats     Conversation[]
-  proposals TransactionProposal[]
+  seller       User                  @relation(fields: [sellerId], references: [id], onDelete: Cascade)
+  category     ListingCategory       @relation(fields: [categoryId], references: [id])
+  media        ListingMedia[]
+  chats        Conversation[]
+  proposals    TransactionProposal[]
+  transactions Transaction[]
 
   @@index([status, createdAt(sort: Desc)])
   @@index([sellerId])
@@ -223,10 +259,11 @@ model Conversation {
   createdAt DateTime         @default(now()) @map("created_at") @db.Timestamptz
   updatedAt DateTime         @updatedAt @map("updated_at") @db.Timestamptz
 
-  listing   Listing?              @relation(fields: [listingId], references: [id], onDelete: SetNull)
-  members   ConversationMember[]
-  messages  Message[]
-  proposals TransactionProposal[]
+  listing     Listing?              @relation(fields: [listingId], references: [id], onDelete: SetNull)
+  members     ConversationMember[]
+  messages    Message[]
+  proposals   TransactionProposal[]
+  transaction Transaction?
 
   @@index([listingId])
   @@index([updatedAt(sort: Desc)])
@@ -313,8 +350,136 @@ model TransactionProposal {
   seller        User          @relation("SellerProposals", fields: [sellerId], references: [id], onDelete: Cascade)
   proposedBy    User          @relation("ProposedByUser", fields: [proposedById], references: [id], onDelete: Cascade)
   midmanProfile MidmanProfile @relation(fields: [midmanProfileId], references: [id])
+  transaction   Transaction?
 
   @@index([conversationId, createdAt(sort: Desc)])
   @@index([listingId, status])
   @@map("transaction_proposals")
+}
+
+model Transaction {
+  id                  String            @id @default(uuid()) @db.Uuid
+  listingId           String            @map("listing_id") @db.Uuid
+  proposalId          String            @unique @map("proposal_id") @db.Uuid
+  conversationId      String            @unique @map("conversation_id") @db.Uuid
+  buyerId             String            @map("buyer_id") @db.Uuid
+  sellerId            String            @map("seller_id") @db.Uuid
+  midmanProfileId     String            @map("midman_profile_id") @db.Uuid
+  status              TransactionStatus @default(MIDMAN_ASSIGNED)
+  agreedAmountCentavos Int?             @map("agreed_amount_centavos")
+  midmanFeeCentavos   Int?              @map("midman_fee_centavos")
+  termsNotes          String?           @map("terms_notes")
+  fulfillmentNotes    String?           @map("fulfillment_notes")
+  buyerConfirmedAt    DateTime?         @map("buyer_confirmed_at") @db.Timestamptz
+  completedAt         DateTime?         @map("completed_at") @db.Timestamptz
+  createdAt           DateTime          @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt           DateTime          @updatedAt @map("updated_at") @db.Timestamptz
+
+  listing       Listing                @relation(fields: [listingId], references: [id])
+  proposal      TransactionProposal    @relation(fields: [proposalId], references: [id])
+  conversation  Conversation           @relation(fields: [conversationId], references: [id])
+  buyer         User                   @relation("BuyerTransactions", fields: [buyerId], references: [id])
+  seller        User                   @relation("SellerTransactions", fields: [sellerId], references: [id])
+  midmanProfile MidmanProfile          @relation(fields: [midmanProfileId], references: [id])
+  agreements    TransactionAgreement[]
+  queueEntry    TransactionQueue?
+  events        TransactionEvent[]
+  payments      Payment[]
+
+  @@index([buyerId])
+  @@index([sellerId])
+  @@index([midmanProfileId, status])
+  @@map("transactions")
+}
+
+model TransactionAgreement {
+  id            String   @id @default(uuid()) @db.Uuid
+  transactionId String   @map("transaction_id") @db.Uuid
+  userId        String   @map("user_id") @db.Uuid
+  approvedAt    DateTime @default(now()) @map("approved_at") @db.Timestamptz
+
+  transaction Transaction @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([transactionId, userId])
+  @@map("transaction_agreements")
+}
+
+model TransactionQueue {
+  id              String      @id @default(uuid()) @db.Uuid
+  transactionId   String      @unique @map("transaction_id") @db.Uuid
+  midmanProfileId String      @map("midman_profile_id") @db.Uuid
+  position        Int
+  status          QueueStatus @default(WAITING)
+  createdAt       DateTime    @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt       DateTime    @updatedAt @map("updated_at") @db.Timestamptz
+
+  transaction   Transaction   @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+  midmanProfile MidmanProfile @relation(fields: [midmanProfileId], references: [id])
+
+  @@index([midmanProfileId, status, position])
+  @@map("transaction_queue")
+}
+
+model TransactionEvent {
+  id            String   @id @default(uuid()) @db.Uuid
+  transactionId String   @map("transaction_id") @db.Uuid
+  actorId       String?  @map("actor_id") @db.Uuid
+  eventType     String   @map("event_type")
+  summary       String
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  transaction Transaction @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+  actor       User?       @relation(fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([transactionId, createdAt(sort: Desc)])
+  @@map("transaction_events")
+}
+
+model Payment {
+  id              String        @id @default(uuid()) @db.Uuid
+  transactionId   String        @map("transaction_id") @db.Uuid
+  payerId         String        @map("payer_id") @db.Uuid
+  amountCentavos  Int           @map("amount_centavos")
+  status          PaymentStatus @default(SUBMITTED)
+  referenceNumber String?       @map("reference_number")
+  createdAt       DateTime      @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt       DateTime      @updatedAt @map("updated_at") @db.Timestamptz
+
+  transaction   Transaction           @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+  payer         User                  @relation(fields: [payerId], references: [id])
+  receipts      PaymentReceipt[]
+  verifications PaymentVerification[]
+
+  @@index([transactionId, createdAt(sort: Desc)])
+  @@map("payments")
+}
+
+model PaymentReceipt {
+  id            String   @id @default(uuid()) @db.Uuid
+  paymentId     String   @map("payment_id") @db.Uuid
+  storagePath   String   @map("storage_path")
+  mimeType      String   @map("mime_type")
+  fileSizeBytes Int      @map("file_size_bytes")
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  payment Payment @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+
+  @@index([paymentId])
+  @@map("payment_receipts")
+}
+
+model PaymentVerification {
+  id           String        @id @default(uuid()) @db.Uuid
+  paymentId    String        @map("payment_id") @db.Uuid
+  midmanUserId String        @map("midman_user_id") @db.Uuid
+  decision     PaymentStatus
+  notes        String?
+  verifiedAt   DateTime      @default(now()) @map("verified_at") @db.Timestamptz
+
+  payment    Payment @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+  midmanUser User    @relation(fields: [midmanUserId], references: [id])
+
+  @@index([paymentId])
+  @@map("payment_verifications")
 }
