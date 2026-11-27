@@ -87,6 +87,25 @@ enum PaymentStatus {
   REJECTED
 }
 
+enum DisputeStatus {
+  OPEN
+  UNDER_REVIEW
+  RESOLVED_COMPLETED
+  RESOLVED_CANCELLED
+}
+
+enum ReportStatus {
+  OPEN
+  REVIEWED
+  DISMISSED
+}
+
+enum ReportTargetType {
+  LISTING
+  USER
+  REVIEW
+}
+
 model User {
   id        String   @id @db.Uuid
   email     String   @unique
@@ -106,9 +125,16 @@ model User {
   buyerTransactions Transaction[]         @relation("BuyerTransactions")
   sellerTransactions Transaction[]        @relation("SellerTransactions")
   agreements        TransactionAgreement[]
-  payments          Payment[]
-  verifications     PaymentVerification[]
-  txEvents          TransactionEvent[]
+  payments           Payment[]
+  verifications      PaymentVerification[]
+  txEvents           TransactionEvent[]
+  reviewsGiven       Review[]
+  disputesOpened     Dispute[]
+  disputeEvidence    DisputeEvidence[]
+  disputeResolutions DisputeResolution[]
+  reports            Report[]
+  notifications      Notification[]
+  auditLogs          AuditLog[]
 
   @@map("users")
 }
@@ -162,6 +188,7 @@ model MidmanProfile {
   proposals      TransactionProposal[]
   transactions   Transaction[]
   queueItems     TransactionQueue[]
+  reviews        Review[]
 
   @@index([verificationStatus, availabilityStatus])
   @@map("midman_profiles")
@@ -385,6 +412,8 @@ model Transaction {
   queueEntry    TransactionQueue?
   events        TransactionEvent[]
   payments      Payment[]
+  review        Review?
+  dispute       Dispute?
 
   @@index([buyerId])
   @@index([sellerId])
@@ -482,4 +511,117 @@ model PaymentVerification {
 
   @@index([paymentId])
   @@map("payment_verifications")
+}
+
+model Review {
+  id              String   @id @default(uuid()) @db.Uuid
+  transactionId   String   @unique @map("transaction_id") @db.Uuid
+  reviewerId      String   @map("reviewer_id") @db.Uuid
+  midmanProfileId String   @map("midman_profile_id") @db.Uuid
+  rating          Int
+  comment         String
+  vouchSlug       String   @unique @map("vouch_slug")
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  transaction   Transaction   @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+  reviewer      User          @relation(fields: [reviewerId], references: [id])
+  midmanProfile MidmanProfile @relation(fields: [midmanProfileId], references: [id])
+
+  @@index([midmanProfileId, createdAt(sort: Desc)])
+  @@map("reviews")
+}
+
+model Dispute {
+  id            String        @id @default(uuid()) @db.Uuid
+  transactionId String        @unique @map("transaction_id") @db.Uuid
+  openedById    String        @map("opened_by_id") @db.Uuid
+  reason        String
+  status        DisputeStatus @default(OPEN)
+  createdAt     DateTime      @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt     DateTime      @updatedAt @map("updated_at") @db.Timestamptz
+
+  transaction Transaction        @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+  openedBy    User               @relation(fields: [openedById], references: [id])
+  evidence    DisputeEvidence[]
+  resolution  DisputeResolution?
+
+  @@index([status, createdAt(sort: Desc)])
+  @@map("disputes")
+}
+
+model DisputeEvidence {
+  id            String   @id @default(uuid()) @db.Uuid
+  disputeId     String   @map("dispute_id") @db.Uuid
+  uploadedById  String   @map("uploaded_by_id") @db.Uuid
+  storagePath   String   @map("storage_path")
+  mimeType      String   @map("mime_type")
+  fileSizeBytes Int      @map("file_size_bytes")
+  notes         String?
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  dispute    Dispute @relation(fields: [disputeId], references: [id], onDelete: Cascade)
+  uploadedBy User    @relation(fields: [uploadedById], references: [id])
+
+  @@index([disputeId])
+  @@map("dispute_evidence")
+}
+
+model DisputeResolution {
+  id          String            @id @default(uuid()) @db.Uuid
+  disputeId   String            @unique @map("dispute_id") @db.Uuid
+  adminUserId String            @map("admin_user_id") @db.Uuid
+  outcome     TransactionStatus
+  notes       String
+  resolvedAt  DateTime          @default(now()) @map("resolved_at") @db.Timestamptz
+
+  dispute   Dispute @relation(fields: [disputeId], references: [id], onDelete: Cascade)
+  adminUser User    @relation(fields: [adminUserId], references: [id])
+
+  @@map("dispute_resolutions")
+}
+
+model Report {
+  id         String           @id @default(uuid()) @db.Uuid
+  reporterId String           @map("reporter_id") @db.Uuid
+  targetType ReportTargetType @map("target_type")
+  targetId   String           @map("target_id") @db.Uuid
+  reason     String
+  status     ReportStatus     @default(OPEN)
+  createdAt  DateTime         @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt  DateTime         @updatedAt @map("updated_at") @db.Timestamptz
+
+  reporter User @relation(fields: [reporterId], references: [id])
+
+  @@index([status, createdAt(sort: Desc)])
+  @@map("reports")
+}
+
+model Notification {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  title     String
+  body      String
+  linkUrl   String?  @map("link_url")
+  isRead    Boolean  @default(false) @map("is_read")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, isRead, createdAt(sort: Desc)])
+  @@map("notifications")
+}
+
+model AuditLog {
+  id         String   @id @default(uuid()) @db.Uuid
+  actorId    String   @map("actor_id") @db.Uuid
+  action     String
+  targetType String   @map("target_type")
+  targetId   String   @map("target_id") @db.Uuid
+  metadata   String?
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  actor User @relation(fields: [actorId], references: [id])
+
+  @@index([createdAt(sort: Desc)])
+  @@map("audit_logs")
 }
