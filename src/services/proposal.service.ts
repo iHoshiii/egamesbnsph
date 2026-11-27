@@ -1,5 +1,6 @@
 import "server-only";
 import { prisma } from "@/lib/prisma";
+import { createTransactionFromProposal } from "@/services/transaction.service";
 
 export async function proposeMidman(
   conversationId: string,
@@ -116,7 +117,7 @@ export async function respondToProposal(
   const sellerAcceptedAt = isSeller ? (proposal.sellerAcceptedAt ?? now) : proposal.sellerAcceptedAt;
   const bothAccepted = Boolean(buyerAcceptedAt && sellerAcceptedAt);
 
-  return prisma.transactionProposal.update({
+  const updated = await prisma.transactionProposal.update({
     where: { id: proposalId },
     data: {
       buyerAcceptedAt,
@@ -124,4 +125,10 @@ export async function respondToProposal(
       status: bothAccepted ? "ACCEPTED" : "PENDING",
     },
   });
+
+  if (bothAccepted) {
+    await createTransactionFromProposal(updated.id);
+  }
+
+  return updated;
 }

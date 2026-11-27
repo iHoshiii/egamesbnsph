@@ -101,6 +101,7 @@ async function ConversationDetailContent({
                     buyerAccepted: Boolean(latest.buyerAcceptedAt),
                     sellerAccepted: Boolean(latest.sellerAcceptedAt),
                     proposedById: latest.proposedById,
+                    transactionId: latest.transaction?.id ?? null,
                   }
                 : null
             }
