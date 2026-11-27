@@ -1,0 +1,195 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum AppRole {
+  BUYER
+  SELLER
+  MIDMAN
+  ADMIN
+}
+
+enum AccountStatus {
+  ACTIVE
+  SUSPENDED
+  BANNED
+}
+
+enum MidmanVerificationStatus {
+  PENDING
+  VERIFIED
+  SUSPENDED
+  REVOKED
+}
+
+enum MidmanAvailability {
+  AVAILABLE
+  BUSY
+  OFFLINE
+}
+
+enum ListingStatus {
+  DRAFT
+  ACTIVE
+  RESERVED
+  SOLD
+  PAUSED
+  REMOVED
+}
+
+enum MediaType {
+  IMAGE
+  VIDEO
+}
+
+model User {
+  id        String   @id @db.Uuid
+  email     String   @unique
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  roles         UserRole[]
+  profile       UserProfile?
+  midmanProfile MidmanProfile?
+  listings      Listing[]
+
+  @@map("users")
+}
+
+model UserRole {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  role      AppRole
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, role])
+  @@index([userId])
+  @@map("user_roles")
+}
+
+model UserProfile {
+  id          String        @id @default(uuid()) @db.Uuid
+  userId      String        @unique @map("user_id") @db.Uuid
+  username    String        @unique
+  displayName String        @map("display_name")
+  avatarUrl   String?       @map("avatar_url")
+  bio         String?
+  status      AccountStatus @default(ACTIVE)
+  createdAt   DateTime      @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt   DateTime      @updatedAt @map("updated_at") @db.Timestamptz
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_profiles")
+}
+
+model MidmanProfile {
+  id                 String                   @id @default(uuid()) @db.Uuid
+  userId             String                   @unique @map("user_id") @db.Uuid
+  displayName        String                   @map("display_name")
+  bio                String?
+  verificationStatus MidmanVerificationStatus @default(PENDING) @map("verification_status")
+  feeDescription     String                   @map("fee_description")
+  availabilityStatus MidmanAvailability       @default(AVAILABLE) @map("availability_status")
+  completedCount     Int                      @default(0) @map("completed_count")
+  ratingAverage      Decimal                  @default(0) @map("rating_average") @db.Decimal(3, 2)
+  verifiedAt         DateTime?                @map("verified_at") @db.Timestamptz
+  createdAt          DateTime                 @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt          DateTime                 @updatedAt @map("updated_at") @db.Timestamptz
+
+  user           User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  socials        MidmanSocial[]
+  paymentMethods MidmanPaymentMethod[]
+
+  @@index([verificationStatus, availabilityStatus])
+  @@map("midman_profiles")
+}
+
+model MidmanSocial {
+  id              String @id @default(uuid()) @db.Uuid
+  midmanProfileId String @map("midman_profile_id") @db.Uuid
+  platform        String
+  url             String
+  handle          String?
+
+  midmanProfile MidmanProfile @relation(fields: [midmanProfileId], references: [id], onDelete: Cascade)
+
+  @@index([midmanProfileId])
+  @@map("midman_socials")
+}
+
+model MidmanPaymentMethod {
+  id                  String  @id @default(uuid()) @db.Uuid
+  midmanProfileId     String  @map("midman_profile_id") @db.Uuid
+  methodName          String  @map("method_name")
+  accountName         String  @map("account_name")
+  accountNumberMasked String  @map("account_number_masked")
+  isActive            Boolean @default(true) @map("is_active")
+
+  midmanProfile MidmanProfile @relation(fields: [midmanProfileId], references: [id], onDelete: Cascade)
+
+  @@index([midmanProfileId])
+  @@map("midman_payment_methods")
+}
+
+model ListingCategory {
+  id          String   @id @default(uuid()) @db.Uuid
+  slug        String   @unique
+  name        String
+  description String?
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  listings Listing[]
+
+  @@map("listing_categories")
+}
+
+model Listing {
+  id               String        @id @default(uuid()) @db.Uuid
+  sellerId         String        @map("seller_id") @db.Uuid
+  categoryId       String        @map("category_id") @db.Uuid
+  title            String
+  description      String
+  priceCentavos    Int           @map("price_centavos")
+  status           ListingStatus @default(ACTIVE)
+  skinsCount       Int?          @map("skins_count")
+  collectorLevel   String?       @map("collector_level")
+  highestRank      String?       @map("highest_rank")
+  midmanPreference String?       @map("midman_preference")
+  createdAt        DateTime      @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt        DateTime      @updatedAt @map("updated_at") @db.Timestamptz
+
+  seller   User            @relation(fields: [sellerId], references: [id], onDelete: Cascade)
+  category ListingCategory @relation(fields: [categoryId], references: [id])
+  media    ListingMedia[]
+
+  @@index([status, createdAt(sort: Desc)])
+  @@index([sellerId])
+  @@index([categoryId])
+  @@map("listings")
+}
+
+model ListingMedia {
+  id            String    @id @default(uuid()) @db.Uuid
+  listingId     String    @map("listing_id") @db.Uuid
+  mediaType     MediaType @map("media_type")
+  storagePath   String    @map("storage_path")
+  publicUrl     String    @map("public_url")
+  mimeType      String    @map("mime_type")
+  fileSizeBytes Int       @map("file_size_bytes")
+  sortOrder     Int       @default(0) @map("sort_order")
+  createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz
+
+  listing Listing @relation(fields: [listingId], references: [id], onDelete: Cascade)
+
+  @@index([listingId, sortOrder])
+  @@map("listing_media")
+}
