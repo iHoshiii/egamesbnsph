@@ -1,5 +1,6 @@
 import { Suspense } from "react";
 import Link from "next/link";
+import { connection } from "next/server";
 import { LogOut, PlusCircle, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/server";
@@ -7,6 +8,7 @@ import { signOutAction } from "@/app/actions/auth";
 import { NavLinks } from "./nav-links";
 
 async function NavbarSessionArea() {
+  await connection();
   const supabase = await createClient();
   const {
     data: { user },
@@ -51,6 +53,7 @@ async function NavbarSessionArea() {
 }
 
 async function MobileNavBar() {
+  await connection();
   const supabase = await createClient();
   const {
     data: { user },

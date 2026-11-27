@@ -1,8 +1,10 @@
 import "server-only";
+import { connection } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { prisma } from "@/lib/prisma";
 
 export async function getCurrentSessionUser() {
+  await connection();
   const supabase = await createClient();
   const {
     data: { user },
