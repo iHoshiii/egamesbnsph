@@ -25,7 +25,7 @@ export async function getCurrentSessionUser() {
     return dbUser;
   }
 
-  const email = user.email ?? `${user.id}@mlbnsph.local`;
+  const email = user.email ?? `${user.id}@egamesbnsph.local`;
   const baseName = email.split("@")[0].replace(/[^a-zA-Z0-9_]/g, "") || "user";
   const username = `${baseName.toLowerCase()}_${user.id.slice(0, 6)}`;
 

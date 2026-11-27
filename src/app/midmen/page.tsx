@@ -15,19 +15,8 @@ async function MidmenDirectoryContent() {
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6">
-      <div className="mb-8">
-        <div className="inline-flex items-center gap-2 rounded-full bg-emerald-500/10 px-3 py-1 text-xs font-medium text-emerald-700 dark:text-emerald-400">
-          <ShieldCheck className="h-4 w-4" />
-          Admin-Verified Directory
-        </div>
-        <h1 className="mt-3 text-3xl font-bold tracking-tight">
-          Verified Midmen
-        </h1>
-        <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
-          All midmen listed here are manually verified by the platform
-          administrator. Both buyer and seller must agree on the same midman
-          before a transaction room is created.
-        </p>
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold tracking-tight">Verified Midmen</h1>
       </div>
 
       {midmen.length === 0 ? (

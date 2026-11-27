@@ -10,7 +10,6 @@ import { Label } from "@/components/ui/label";
 import {
   Card,
   CardContent,
-  CardDescription,
   CardFooter,
   CardHeader,
   CardTitle,
@@ -30,10 +29,7 @@ function LoginFormInner() {
   return (
     <Card className="w-full max-w-md">
       <CardHeader>
-        <CardTitle className="text-2xl">Sign in to MLBNSPH</CardTitle>
-        <CardDescription>
-          Access your buyer/seller dashboard and post listings.
-        </CardDescription>
+        <CardTitle className="text-2xl">Sign in to egamesbnsph</CardTitle>
       </CardHeader>
       <form action={formAction}>
         <input type="hidden" name="next" value={next} />
