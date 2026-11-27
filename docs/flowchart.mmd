@@ -1,0 +1,69 @@
+
+flowchart TD
+    START([Start]) --> SELLER["Seller creates listing"]
+    SELLER --> MARKET["Listing published"]
+    MARKET --> BROWSE["Buyer browses marketplace"]
+    BROWSE --> SELECT["Buyer selects listing"]
+    SELECT --> CHAT["Private buyer-seller chat"]
+    CHAT --> REQUEST["Buyer sends purchase request"]
+
+    REQUEST --> ACCEPT{"Seller accepts request?"}
+    ACCEPT -->|No| CANCEL["Request rejected or cancelled"]
+    CANCEL --> END_CANCEL([End])
+    ACCEPT -->|Yes| MIDMAN_SELECT["Buyer or seller proposes a verified midman"]
+
+    MIDMAN_SELECT --> OTHER_PARTY{"Other party accepts proposed midman?"}
+    OTHER_PARTY -->|No| NEW_PROPOSAL["Reject or propose another midman"]
+    NEW_PROPOSAL --> MIDMAN_SELECT
+    OTHER_PARTY -->|Yes| BOTH_AGREE["Both parties agree on same midman"]
+
+    BOTH_AGREE --> CREATE_ROOM["Create transaction room"]
+    CREATE_ROOM --> INVITE["Add buyer, seller, and midman"]
+    INVITE --> MIDMAN_ACCEPT{"Midman accepts assignment?"}
+
+    MIDMAN_ACCEPT -->|No| RESELECT["Return to midman selection"]
+    RESELECT --> MIDMAN_SELECT
+    MIDMAN_ACCEPT -->|Yes| QUEUE["Assign midman queue position"]
+
+    QUEUE --> TERMS["Midman prepares transaction terms"]
+    TERMS --> APPROVAL["Show terms to buyer and seller"]
+    APPROVAL --> BUYER_APPROVE{"Buyer approves?"}
+
+    BUYER_APPROVE -->|No| EDIT_TERMS["Revise transaction terms"]
+    EDIT_TERMS --> APPROVAL
+    BUYER_APPROVE -->|Yes| SELLER_APPROVE{"Seller approves?"}
+
+    SELLER_APPROVE -->|No| EDIT_TERMS
+    SELLER_APPROVE -->|Yes| PAYMENT_INSTRUCTIONS["Display approved payment instructions"]
+
+    PAYMENT_INSTRUCTIONS --> BUYER_PAYS["Buyer sends payment"]
+    BUYER_PAYS --> RECEIPT["Buyer uploads receipt"]
+    RECEIPT --> SUBMITTED["Payment status: SUBMITTED"]
+    SUBMITTED --> MIDMAN_CHECK["Midman independently checks actual payment"]
+
+    MIDMAN_CHECK --> PAYMENT_OK{"Payment actually received?"}
+    PAYMENT_OK -->|No| PAYMENT_REJECTED["Payment status: REJECTED"]
+    PAYMENT_REJECTED --> PAYMENT_ACTION{"Retry payment or open dispute?"}
+    PAYMENT_ACTION -->|Retry| PAYMENT_INSTRUCTIONS
+    PAYMENT_ACTION -->|Dispute| DISPUTE
+
+    PAYMENT_OK -->|Yes| VERIFIED["Payment status: VERIFIED"]
+    VERIFIED --> SELLER_FULFILL["Seller performs agreed fulfillment"]
+    SELLER_FULFILL --> FULFILLMENT_SUBMITTED["Seller marks fulfillment completed"]
+    FULFILLMENT_SUBMITTED --> BUYER_CHECK["Buyer checks fulfillment"]
+
+    BUYER_CHECK --> RECEIVED{"Buyer confirms receipt?"}
+    RECEIVED -->|Yes| COMPLETE["Transaction status: COMPLETED"]
+    COMPLETE --> UPDATE_LISTING["Update listing and queue status"]
+    UPDATE_LISTING --> REVIEW["Allow eligible reviews and vouches"]
+    REVIEW --> END_SUCCESS([Transaction completed])
+
+    RECEIVED -->|No| DISPUTE["Open transaction dispute"]
+    DISPUTE --> FREEZE["Pause normal transaction progression"]
+    FREEZE --> EVIDENCE["Collect evidence and transaction history"]
+    EVIDENCE --> ADMIN_REVIEW["Admin reviews dispute"]
+    ADMIN_REVIEW --> RESOLUTION{"Admin records resolution"}
+
+    RESOLUTION -->|Resolved successfully| COMPLETE
+    RESOLUTION -->|Cancelled| CANCELLED["Transaction cancelled"]
+    CANCELLED --> END_CANCEL
