@@ -100,6 +100,8 @@ export async function getTransactionDetail(transactionId: string, userId: string
       },
       agreements: true,
       queueEntry: true,
+      review: true,
+      dispute: { include: { evidence: true } },
       events: { orderBy: { createdAt: "desc" }, take: 20 },
       payments: {
         orderBy: { createdAt: "desc" },

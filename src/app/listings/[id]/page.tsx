@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { ArrowLeft, MessageSquare, ShieldCheck, Sparkles, Trophy, User } from "lucide-react";
 import { getListingById } from "@/services/listing.service";
 import { startConversationAction } from "@/app/actions/messaging";
+import { ReportListingButton } from "@/components/marketplace/report-listing-button";
 import { formatPhpFromCentavos } from "@/lib/utils/currency";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -160,6 +161,7 @@ async function ListingDetailContent({
                     View Verified Midmen
                   </Button>
                 </Link>
+                <ReportListingButton listingId={listing.id} />
               </div>
             </CardContent>
           </Card>
