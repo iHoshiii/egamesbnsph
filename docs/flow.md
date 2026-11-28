@@ -1,9 +1,9 @@
 
-# MLBNSPH.com - Transaction Workflow
+# egamesbnsph.com - Transaction Workflow
 
 ## 1. Purpose
 
-This document defines the complete transaction workflow of MLBNSPH.com.
+This document defines the complete transaction workflow of egamesbnsph.com.
 
 It explains how buyers, sellers, and midmen interact throughout a transaction, including:
 

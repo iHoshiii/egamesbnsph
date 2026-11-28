@@ -17,6 +17,8 @@ import {
   verifyPaymentSchema,
 } from "@/lib/validations/transaction";
 import { pesosToCentavos } from "@/lib/utils/currency";
+import { checkRateLimit } from "@/lib/utils/rate-limit";
+import { validateUploadFile } from "@/lib/validations/upload";
 
 export async function respondAssignmentAction(transactionId: string, accept: boolean) {
   const user = await getCurrentSessionUser();
@@ -69,6 +71,18 @@ export async function submitPaymentAction(payload: unknown) {
   if (!user) return { error: "Sign in required." };
   const parsed = submitPaymentSchema.safeParse(payload);
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Invalid payment." };
+
+  const rl = checkRateLimit(`payment:${user.id}`, 5, 60_000);
+  if (!rl.allowed) return { error: "Too many payment submissions. Wait a minute." };
+
+  const uploadCheck = validateUploadFile({
+    storagePath: parsed.data.storagePath,
+    mimeType: parsed.data.mimeType,
+    fileSizeBytes: parsed.data.fileSizeBytes,
+  });
+  if (!uploadCheck.success) {
+    return { error: uploadCheck.error.issues[0]?.message ?? "Invalid receipt file." };
+  }
 
   try {
     await submitPayment(

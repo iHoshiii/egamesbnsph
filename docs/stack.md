@@ -1,5 +1,5 @@
 
-# MLBNSPH.com - Technology Stack
+# egamesbnsph.com - Technology Stack
 
 ## 1. Stack Overview
 
@@ -13,6 +13,7 @@ The architecture will follow a **Modular Monolith** approach. The frontend and b
 | Language | TypeScript | Application logic and type safety |
 | Styling | Tailwind CSS | Responsive UI styling |
 | UI Components | shadcn/ui | Reusable interface components |
+| ORM | Prisma 7 (`@prisma/adapter-pg`) | Typed database queries (`prisma7.config.ts`) |
 | Database | Supabase PostgreSQL | Relational database |
 | Authentication | Supabase Auth | Registration, login, and sessions |
 | Realtime | Supabase Realtime | Chat and live transaction updates |
