@@ -1,0 +1,107 @@
+
+flowchart TB
+    USERS["Platform Users"]
+
+    subgraph CLIENT["Frontend Layer - Next.js App Router"]
+        PUBLIC["Public Website"]
+        AUTH_UI["Authentication Pages"]
+        MARKET_UI["Marketplace Interface"]
+        DASHBOARD["User Dashboard"]
+        MIDMAN_UI["Midman Dashboard"]
+        ADMIN_UI["Admin Dashboard"]
+        CHAT_UI["Messaging Interface"]
+        TRANSACTION_UI["Transaction Room"]
+    end
+
+    subgraph APPLICATION["Application Layer - Next.js + TypeScript"]
+        AUTH_SERVICE["Authentication Service"]
+        USER_SERVICE["User and Role Service"]
+        LISTING_SERVICE["Listing Service"]
+        MIDMAN_SERVICE["Midman Management Service"]
+        CHAT_SERVICE["Messaging Service"]
+        TRANSACTION_SERVICE["Transaction Service"]
+        QUEUE_SERVICE["Midman Queue Service"]
+        PAYMENT_SERVICE["Payment Service"]
+        REVIEW_SERVICE["Reviews and Vouches Service"]
+        DISPUTE_SERVICE["Dispute Service"]
+        NOTIFICATION_SERVICE["Notification Service"]
+        ADMIN_SERVICE["Admin and Moderation Service"]
+    end
+
+    subgraph BACKEND["Supabase Backend"]
+        SUPABASE_AUTH["Supabase Auth"]
+        POSTGRES[("Supabase PostgreSQL")]
+        REALTIME["Supabase Realtime"]
+        STORAGE["Supabase Storage"]
+        RLS["Row Level Security"]
+    end
+
+    subgraph STORAGE_BUCKETS["Storage Buckets"]
+        LISTING_BUCKET["Public Listing Images"]
+        VERIFICATION_BUCKET["Private Midman Verification"]
+        PAYMENT_BUCKET["Private Payment Receipts"]
+        DISPUTE_BUCKET["Private Dispute Evidence"]
+    end
+
+    subgraph EXTERNAL["External Services"]
+        VERCEL["Vercel Hosting"]
+        GITHUB["GitHub Repository"]
+        DOMAIN["mlbnsph.com"]
+        EMAIL["Optional Email Provider"]
+    end
+
+    USERS --> PUBLIC
+    USERS --> AUTH_UI
+    USERS --> MARKET_UI
+    USERS --> DASHBOARD
+    USERS --> MIDMAN_UI
+    USERS --> ADMIN_UI
+
+    PUBLIC --> LISTING_SERVICE
+    AUTH_UI --> AUTH_SERVICE
+    MARKET_UI --> LISTING_SERVICE
+    DASHBOARD --> USER_SERVICE
+    DASHBOARD --> CHAT_UI
+    DASHBOARD --> TRANSACTION_UI
+    MIDMAN_UI --> MIDMAN_SERVICE
+    MIDMAN_UI --> QUEUE_SERVICE
+    ADMIN_UI --> ADMIN_SERVICE
+    CHAT_UI --> CHAT_SERVICE
+    TRANSACTION_UI --> TRANSACTION_SERVICE
+
+    AUTH_SERVICE --> SUPABASE_AUTH
+    AUTH_SERVICE --> POSTGRES
+    USER_SERVICE --> POSTGRES
+    LISTING_SERVICE --> POSTGRES
+    MIDMAN_SERVICE --> POSTGRES
+    CHAT_SERVICE --> POSTGRES
+    TRANSACTION_SERVICE --> POSTGRES
+    QUEUE_SERVICE --> POSTGRES
+    PAYMENT_SERVICE --> POSTGRES
+    REVIEW_SERVICE --> POSTGRES
+    DISPUTE_SERVICE --> POSTGRES
+    NOTIFICATION_SERVICE --> POSTGRES
+    ADMIN_SERVICE --> POSTGRES
+
+    CHAT_SERVICE <--> REALTIME
+    TRANSACTION_SERVICE <--> REALTIME
+    QUEUE_SERVICE <--> REALTIME
+    NOTIFICATION_SERVICE <--> REALTIME
+
+    LISTING_SERVICE --> STORAGE
+    MIDMAN_SERVICE --> STORAGE
+    PAYMENT_SERVICE --> STORAGE
+    DISPUTE_SERVICE --> STORAGE
+
+    STORAGE --> LISTING_BUCKET
+    STORAGE --> VERIFICATION_BUCKET
+    STORAGE --> PAYMENT_BUCKET
+    STORAGE --> DISPUTE_BUCKET
+
+    POSTGRES --> RLS
+    SUPABASE_AUTH --> RLS
+
+    VERCEL --> CLIENT
+    GITHUB --> VERCEL
+    DOMAIN --> VERCEL
+    NOTIFICATION_SERVICE -. Optional email .-> EMAIL
