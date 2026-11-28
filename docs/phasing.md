@@ -1,8 +1,8 @@
-# MLBNSPH.com - Development Phasing
+# egamesbnsph.com - Development Phasing
 
 ## 1. Current State
 
-The Next.js (`16.4.6`) + TypeScript + Tailwind CSS v4 + `shadcn/ui` + Vitest/Playwright skeleton is initialized. Next up is connecting Supabase and building out the database, authentication, and core modules.
+Phases 1 through 6 are implemented on Next.js (`16.4.6`) + TypeScript + Tailwind CSS v4 + `shadcn/ui` + Prisma 7 + Supabase + Vitest/Playwright, including route skeleton loading, rate limiting, upload validation, and RBAC tests. Remaining before production launch: fix the deferred `prisma.transaction.findMany` dev runtime error, run `npm run test:e2e`, and deploy to Vercel.
 
 ---
 
@@ -35,13 +35,13 @@ The Next.js (`16.4.6`) + TypeScript + Tailwind CSS v4 + `shadcn/ui` + Vitest/Pla
   - **Midman System**: `midman_profiles`, `midman_socials`, `midman_verifications`, `midman_payment_methods`, `midman_availability`; midman application flow with `private-verifications` document uploads; public verified midman directory; admin verification/suspension tools.
 - **Exit Criteria**: Sellers can publish listings, users can apply to become midmen, admins can verify/revoke midmen, and buyers can browse both.
 
-### Phase 3: Real-time Messaging & Midman Selection *(MVP Release 2 — Part A)*
+### Phase 3: Real-time Messaging & Midman Selection *(MVP Release 2, Part A)*
 - **Scope**:
   - **Private Chat**: `conversations`, `conversation_members`, `messages`, `message_attachments`, `message_reads`; Supabase Realtime subscriptions with PostgreSQL fallback on reconnect; buyer-seller private chat initiated from listings.
   - **Midman Proposals**: `transaction_proposals` (`PENDING`, `ACCEPTED`, `REJECTED`, `SUPERSEDED`, `EXPIRED`); mutual acceptance enforcement requiring both buyer and seller to agree on the same `VERIFIED` midman.
 - **Exit Criteria**: Buyer and seller can chat in real time, send purchase requests, and mutually select a verified midman.
 
-### Phase 4: Transaction Room, Queue & Manual Payments *(MVP Release 2 — Part B)*
+### Phase 4: Transaction Room, Queue & Manual Payments *(MVP Release 2, Part B)*
 - **Scope**:
   - **Transaction Room**: `transactions`, `transaction_agreements`, `transaction_events`, `transaction_queue`; 3-party group chat (buyer, seller, selected midman) with automated welcome and credential-safety warning.
   - **Midman Queue**: Atomic database queue position assignment when a midman accepts an assignment (or return to midman selection if declined).
@@ -58,5 +58,5 @@ The Next.js (`16.4.6`) + TypeScript + Tailwind CSS v4 + `shadcn/ui` + Vitest/Pla
 - **Scope**:
   - Multi-role RLS and authorization tests (Buyer, Seller, Midman, Admin) in Vitest.
   - End-to-end transaction workflow tests in Playwright (`e2e/`).
-  - Rate limiting on sensitive endpoints, file upload validation checks, and Vercel + production Supabase deployment (`mlbnsph.com`).
+  - Rate limiting on sensitive endpoints, file upload validation checks, and Vercel + production Supabase deployment (`egamesbnsph.com`).
 - **Exit Criteria**: All security, unit, and E2E checks pass and production environment is live.
