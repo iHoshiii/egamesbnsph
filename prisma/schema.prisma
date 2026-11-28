@@ -47,16 +47,35 @@ enum MediaType {
   VIDEO
 }
 
+enum ConversationType {
+  DIRECT
+  TRANSACTION
+}
+
+enum ProposalStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+  SUPERSEDED
+  EXPIRED
+}
+
 model User {
   id        String   @id @db.Uuid
   email     String   @unique
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
   updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz
 
-  roles         UserRole[]
-  profile       UserProfile?
-  midmanProfile MidmanProfile?
-  listings      Listing[]
+  roles             UserRole[]
+  profile           UserProfile?
+  midmanProfile     MidmanProfile?
+  listings          Listing[]
+  conversations     ConversationMember[]
+  messages          Message[]
+  messageReads      MessageRead[]
+  buyerProposals    TransactionProposal[] @relation("BuyerProposals")
+  sellerProposals   TransactionProposal[] @relation("SellerProposals")
+  proposedProposals TransactionProposal[] @relation("ProposedByUser")
 
   @@map("users")
 }
@@ -107,6 +126,7 @@ model MidmanProfile {
   user           User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
   socials        MidmanSocial[]
   paymentMethods MidmanPaymentMethod[]
+  proposals      TransactionProposal[]
 
   @@index([verificationStatus, availabilityStatus])
   @@map("midman_profiles")
@@ -167,9 +187,11 @@ model Listing {
   createdAt        DateTime      @default(now()) @map("created_at") @db.Timestamptz
   updatedAt        DateTime      @updatedAt @map("updated_at") @db.Timestamptz
 
-  seller   User            @relation(fields: [sellerId], references: [id], onDelete: Cascade)
-  category ListingCategory @relation(fields: [categoryId], references: [id])
-  media    ListingMedia[]
+  seller    User                  @relation(fields: [sellerId], references: [id], onDelete: Cascade)
+  category  ListingCategory       @relation(fields: [categoryId], references: [id])
+  media     ListingMedia[]
+  chats     Conversation[]
+  proposals TransactionProposal[]
 
   @@index([status, createdAt(sort: Desc)])
   @@index([sellerId])
@@ -192,4 +214,107 @@ model ListingMedia {
 
   @@index([listingId, sortOrder])
   @@map("listing_media")
+}
+
+model Conversation {
+  id        String           @id @default(uuid()) @db.Uuid
+  type      ConversationType @default(DIRECT)
+  listingId String?          @map("listing_id") @db.Uuid
+  createdAt DateTime         @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime         @updatedAt @map("updated_at") @db.Timestamptz
+
+  listing   Listing?              @relation(fields: [listingId], references: [id], onDelete: SetNull)
+  members   ConversationMember[]
+  messages  Message[]
+  proposals TransactionProposal[]
+
+  @@index([listingId])
+  @@index([updatedAt(sort: Desc)])
+  @@map("conversations")
+}
+
+model ConversationMember {
+  id             String    @id @default(uuid()) @db.Uuid
+  conversationId String    @map("conversation_id") @db.Uuid
+  userId         String    @map("user_id") @db.Uuid
+  joinedAt       DateTime  @default(now()) @map("joined_at") @db.Timestamptz
+  lastReadAt     DateTime? @map("last_read_at") @db.Timestamptz
+
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([conversationId, userId])
+  @@index([userId])
+  @@map("conversation_members")
+}
+
+model Message {
+  id             String   @id @default(uuid()) @db.Uuid
+  conversationId String   @map("conversation_id") @db.Uuid
+  senderId       String   @map("sender_id") @db.Uuid
+  body           String
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  conversation Conversation        @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  sender       User                @relation(fields: [senderId], references: [id], onDelete: Cascade)
+  attachments  MessageAttachment[]
+  reads        MessageRead[]
+
+  @@index([conversationId, createdAt(sort: Asc)])
+  @@map("messages")
+}
+
+model MessageAttachment {
+  id            String   @id @default(uuid()) @db.Uuid
+  messageId     String   @map("message_id") @db.Uuid
+  storagePath   String   @map("storage_path")
+  publicUrl     String   @map("public_url")
+  mimeType      String   @map("mime_type")
+  fileSizeBytes Int      @map("file_size_bytes")
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  message Message @relation(fields: [messageId], references: [id], onDelete: Cascade)
+
+  @@index([messageId])
+  @@map("message_attachments")
+}
+
+model MessageRead {
+  id        String   @id @default(uuid()) @db.Uuid
+  messageId String   @map("message_id") @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  readAt    DateTime @default(now()) @map("read_at") @db.Timestamptz
+
+  message Message @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([messageId, userId])
+  @@index([userId])
+  @@map("message_reads")
+}
+
+model TransactionProposal {
+  id               String         @id @default(uuid()) @db.Uuid
+  conversationId   String         @map("conversation_id") @db.Uuid
+  listingId        String         @map("listing_id") @db.Uuid
+  buyerId          String         @map("buyer_id") @db.Uuid
+  sellerId         String         @map("seller_id") @db.Uuid
+  proposedById     String         @map("proposed_by_id") @db.Uuid
+  midmanProfileId  String         @map("midman_profile_id") @db.Uuid
+  status           ProposalStatus @default(PENDING)
+  buyerAcceptedAt  DateTime?      @map("buyer_accepted_at") @db.Timestamptz
+  sellerAcceptedAt DateTime?      @map("seller_accepted_at") @db.Timestamptz
+  createdAt        DateTime       @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt        DateTime       @updatedAt @map("updated_at") @db.Timestamptz
+
+  conversation  Conversation  @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  listing       Listing       @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  buyer         User          @relation("BuyerProposals", fields: [buyerId], references: [id], onDelete: Cascade)
+  seller        User          @relation("SellerProposals", fields: [sellerId], references: [id], onDelete: Cascade)
+  proposedBy    User          @relation("ProposedByUser", fields: [proposedById], references: [id], onDelete: Cascade)
+  midmanProfile MidmanProfile @relation(fields: [midmanProfileId], references: [id])
+
+  @@index([conversationId, createdAt(sort: Desc)])
+  @@index([listingId, status])
+  @@map("transaction_proposals")
 }

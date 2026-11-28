@@ -1,6 +1,6 @@
 import { Suspense } from "react";
 import Link from "next/link";
-import { ShieldCheck, Store, PlusCircle, LayoutDashboard, LogOut } from "lucide-react";
+import { ShieldCheck, Store, PlusCircle, LayoutDashboard, LogOut, MessageSquare } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/server";
 import { signOutAction } from "@/app/actions/auth";
@@ -28,6 +28,12 @@ async function NavbarAuthActions() {
 
   return (
     <div className="flex items-center gap-2">
+      <Link href="/messages">
+        <Button variant="ghost" size="sm" className="gap-1.5">
+          <MessageSquare className="h-4 w-4" />
+          <span className="hidden sm:inline">Messages</span>
+        </Button>
+      </Link>
       <Link href="/listings/new">
         <Button size="sm" className="gap-1.5">
           <PlusCircle className="h-4 w-4" />
