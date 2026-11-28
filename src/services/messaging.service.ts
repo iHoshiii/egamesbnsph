@@ -126,6 +126,7 @@ export async function getConversationDetail(
       proposals: {
         orderBy: { createdAt: "desc" },
         include: {
+          transaction: { select: { id: true } },
           midmanProfile: {
             select: {
               id: true,

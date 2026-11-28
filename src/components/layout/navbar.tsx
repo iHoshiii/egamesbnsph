@@ -34,6 +34,12 @@ async function NavbarAuthActions() {
           <span className="hidden sm:inline">Messages</span>
         </Button>
       </Link>
+      <Link href="/transactions">
+        <Button variant="ghost" size="sm" className="gap-1.5">
+          <ShieldCheck className="h-4 w-4" />
+          <span className="hidden sm:inline">Transactions</span>
+        </Button>
+      </Link>
       <Link href="/listings/new">
         <Button size="sm" className="gap-1.5">
           <PlusCircle className="h-4 w-4" />

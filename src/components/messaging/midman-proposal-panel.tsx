@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Check, ShieldCheck, X } from "lucide-react";
@@ -34,6 +35,7 @@ export interface ActiveProposalView {
   buyerAccepted: boolean;
   sellerAccepted: boolean;
   proposedById: string;
+  transactionId: string | null;
 }
 
 interface MidmanProposalPanelProps {
@@ -167,9 +169,18 @@ export function MidmanProposalPanel({
               </div>
             )}
             {latestProposal.status === "ACCEPTED" && (
-              <p className="text-xs font-medium text-emerald-700 dark:text-emerald-400">
-                Mutual agreement complete. Transaction room creation arrives in Phase 4.
-              </p>
+              <div className="space-y-2 pt-1">
+                <p className="text-xs font-medium text-emerald-700 dark:text-emerald-400">
+                  Mutual agreement complete. Your transaction room is ready.
+                </p>
+                {latestProposal.transactionId && (
+                  <Link href={`/transactions/${latestProposal.transactionId}`} className="block">
+                    <Button size="sm" className="w-full">
+                      Open Transaction Room
+                    </Button>
+                  </Link>
+                )}
+              </div>
             )}
           </div>
         )}
