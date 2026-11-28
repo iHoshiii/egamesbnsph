@@ -9,7 +9,6 @@ import { Label } from "@/components/ui/label";
 import {
   Card,
   CardContent,
-  CardDescription,
   CardFooter,
   CardHeader,
   CardTitle,
@@ -28,10 +27,7 @@ export default function RegisterPage() {
     <div className="mx-auto flex min-h-[calc(100vh-10rem)] max-w-6xl items-center justify-center px-4 py-12">
       <Card className="w-full max-w-md">
         <CardHeader>
-          <CardTitle className="text-2xl">Create your account</CardTitle>
-          <CardDescription>
-            Buy, sell, and coordinate with verified midmen on MLBNSPH.com.
-          </CardDescription>
+          <CardTitle className="text-2xl">Create egamesbnsph account</CardTitle>
         </CardHeader>
         <form action={formAction}>
           <CardContent className="space-y-4">
